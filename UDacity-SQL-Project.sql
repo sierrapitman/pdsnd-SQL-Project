@@ -1,13 +1,17 @@
+-- Optimization opportunity for all questions: convert subquery to a CTE
+
 --Set 1 Q1: 
 --Create a query that lists each movie, the film category it is
---classified in, and the number of times it has been rented
---out.
+--classified in, and the number of times it has been rented out.
 
 SELECT
   sub.category AS category
   , SUM(rental_count) AS rental_count
-FROM (
+  FROM (
+    -- select distinct film titles, their categories, and the count of rentals for each film using a window function
+    -- window function: for each unique f.title, calculate the r.rental_id count separately, effectively counting the number of rentals for each film title
     SELECT DISTINCT f.title AS title
+      -- limit query to only the categories listed in the WHERE clause
       , c.name as category
       , COUNT(r.rental_id) OVER (PARTITION BY f.title) AS rental_count
       FROM film f
@@ -19,6 +23,7 @@ FROM (
         ON f.film_id = i.film_id
       JOIN rental r
         ON i.inventory_id = r.inventory_id
+    -- filter the results to include only films in specific categories
     WHERE c.name in ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')) sub
     GROUP BY 1
     ORDER BY 2;
@@ -35,6 +40,9 @@ FROM (
 SELECT sub.title AS title
       , sub.category AS category
       , sub.rental_duration AS rental_duration
+      -- divide the result set into four quartiles based on rental_duration
+      -- quartiles are calculated independently for each distinct value in the rental_duration column
+      -- each quartile represents one-fourth of the result set
       , NTILE(4) OVER (PARTITION BY sub.rental_duration) AS quartile
   FROM
     (SELECT
@@ -52,7 +60,7 @@ ORDER BY 4, 3, 2, 1;
 
 
 --Set 1 q3:
---Finally, provide a table with the family friendly film
+--Finally, provide a table with the family-friendly film
 --category, each of the quartiles, and the corresponding
 --count of movies within each combination of film category
 --for each corresponding rental duration category. The
